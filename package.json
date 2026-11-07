@@ -1,0 +1,39 @@
+{
+  "name": "exteradesktop",
+  "version": "1.0.0",
+  "description": "ExteraDesktop — десктопный клиент Telegram с системой плагинов в духе exteraGram",
+  "main": "src/main.js",
+  "author": "ExteraDesktop",
+  "scripts": {
+    "start": "node scripts/start.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "app.exteradesktop",
+    "productName": "ExteraDesktop",
+    "directories": { "output": "dist" },
+    "files": ["src/**/*", "package.json"],
+    "extraResources": [
+      { "from": "plugins", "to": "plugins", "filter": ["**/*"] },
+      { "from": "pybridge", "to": "pybridge", "filter": ["**/*", "!**/__pycache__/**"] }
+    ],
+    "win": {
+      "target": "nsis",
+      "signAndEditExecutable": false,
+      "artifactName": "ExteraDesktop-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "ExteraDesktop"
+    }
+  }
+}

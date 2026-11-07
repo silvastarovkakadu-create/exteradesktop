@@ -1,0 +1,68 @@
+from base_plugin import BasePlugin, HookResult, HookStrategy, MenuItemData, MenuItemType
+from ui.settings import Header, Switch, Input, Divider, Text, Selector
+from ui.bulletin import BulletinHelper
+from client_utils import send_message
+from android_utils import log
+
+__id__ = "eg_demo"
+__name__ = "exteraGram Demo"
+__description__ = "Пример плагина в формате exteraGram: команда .ping, настройки, пункт меню, фильтр входящих"
+__author__ = "@exteradesktop"
+__version__ = "1.0.0"
+__icon__ = "exteraPlugins/1"
+__min_version__ = "11.12.0"
+
+
+class DemoPlugin(BasePlugin):
+    def on_plugin_load(self):
+        self.add_on_send_message_hook()
+        self.add_hook("TL_updateNewMessage")
+        self.add_hook("TL_updateNewChannelMessage")
+        self.add_menu_item(MenuItemData(
+            menu_type=MenuItemType.DRAWER_MENU,
+            text="Demo: привет",
+            on_click=lambda ctx: BulletinHelper.show_success("Плагин на Python работает!"),
+        ))
+        log("eg_demo loaded")
+
+    def on_plugin_unload(self):
+        log("eg_demo unloaded")
+
+    def on_send_message_hook(self, account, params):
+        if not isinstance(getattr(params, "message", None), str):
+            return HookResult()
+        text = params.message.strip()
+
+        if text.startswith(".ping"):
+            send_message({"peer": params.peer, "message": "pong 🏓"})
+            return HookResult(strategy=HookStrategy.CANCEL)
+
+        if self.get_setting("signature_on", False):
+            sig = self.get_setting("signature", "— sent via ExteraDesktop")
+            params.message = f"{params.message}\n{sig}"
+            return HookResult(strategy=HookStrategy.MODIFY, params=params)
+
+        return HookResult()
+
+    def on_update_hook(self, update_name, account, update):
+        word = (self.get_setting("hide_word", "") or "").strip().lower()
+        msg = getattr(update, "message", None)
+        if word and msg is not None and isinstance(getattr(msg, "message", None), str):
+            if word in msg.message.lower():
+                return HookResult(strategy=HookStrategy.CANCEL)
+        return HookResult()
+
+    def create_settings(self):
+        return [
+            Header(text="Подпись"),
+            Switch(key="signature_on", text="Добавлять подпись", default=False,
+                   subtext="К каждому отправленному сообщению",
+                   on_change=lambda v: log(f"signature_on = {v}")),
+            Input(key="signature", text="Текст подписи", default="— sent via ExteraDesktop"),
+            Divider(),
+            Header(text="Фильтр"),
+            Input(key="hide_word", text="Скрывать входящие со словом", default=""),
+            Selector(key="mode", text="Режим", default=0, items=["Обычный", "Тихий"]),
+            Divider(),
+            Text(text="Показать уведомление", on_click=lambda v: BulletinHelper.show_info("Нажато!")),
+        ]
